@@ -8,27 +8,29 @@ datasource db {
 }
 
 model User {
-  id        String @id @default(cuid())
-  email     String @unique
+  id        String  @id @default(cuid())
+  email     String  @unique
   password  String
-  firstName String
-  lastName  String
-  role      Role   @default(RECRUITER)
+  firstName String?
+  lastName  String?
+  role      Role    @default(RECRUITER)
+  phone     String?
+  location  String?
 
-  // User owns one company
-  ownedCompany Company? @relation("CompanyOwner")
-
-  phone    String?
-  location String?
-
+  // Relations
+  ownedCompany Company?      @relation("CompanyOwner")
   applications Application[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  jobs         Job[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {
   RECRUITER
   CANDIDATE
+  ADMIN
+  HIRING_MANAGER
 }
 
 model Company {
@@ -50,21 +52,31 @@ model Company {
 }
 
 model Job {
-  id           String    @id @default(cuid())
-  title        String
-  description  String
-  requirements String
-  salary       String?
-  location     String
-  jobType      JobType   @default(FULL_TIME)
-  status       JobStatus @default(ACTIVE)
+  id             String    @id @default(cuid())
+  title          String
+  department     String
+  description    String    @db.Text
+  requirements   String    @db.Text
+  location       String
+  salary         String?
+  salaryMin      Int?
+  salaryMax      Int?
+  jobType        JobType   @default(FULL_TIME)
+  employmentType String? // Full-time, Part-time, Contract
+  status         JobStatus @default(DRAFT)
+  postedAt       DateTime  @default(now())
+  closedAt       DateTime?
 
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId String
-
+  // Relations
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId    String
+  postedBy     User          @relation(fields: [postedById], references: [id])
+  postedById   String
   applications Application[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  candidates   Candidate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum JobType {
@@ -81,22 +93,40 @@ enum JobStatus {
 }
 
 model Candidate {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String   @unique
-  phone     String?
-  location  String?
-  resume    String?
-  skillTags String[]
-  bio       String?
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String   @unique
+  phone        String?
+  location     String?
+  resume       String?
+  resumeUrl    String?
+  linkedinUrl  String?
+  portfolioUrl String?
+  skillTags    String[]
+  skills       String[] // AI-parsed skills
+  bio          String?
+  summary      String?  @db.Text
+  experience   Int? // Years of experience
+  education    String?
 
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId String
+  // Application tracking
+  stage  String  @default("new") // new, screening, interview, offer, hired, rejected
+  rating Int? // 1-5 stars
+  notes  String? @db.Text
 
+  // Relations
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId    String
+  job          Job?          @relation(fields: [jobId], references: [id])
+  jobId        String?
   applications Application[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  interviews   Interview[]
+  feedback     Feedback[]
+
+  appliedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Application {
@@ -105,14 +135,13 @@ model Application {
   notes  String?
   rating Int?
 
-  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId String
-
+  // Relations
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId       String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   candidateId String
-
-  appliedBy User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  appliedBy   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -124,4 +153,35 @@ enum ApplicationStatus {
   SHORTLISTED
   REJECTED
   OFFERED
+}
+
+model Interview {
+  id               String   @id @default(cuid())
+  candidateId      String
+  title            String
+  scheduledAt      DateTime
+  duration         Int // minutes
+  interviewerName  String
+  interviewerEmail String
+  meetingLink      String?
+  type             String // phone, video, onsite
+  status           String   @default("scheduled") // scheduled, completed, cancelled
+  notes            String?  @db.Text
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Feedback {
+  id           String @id @default(cuid())
+  candidateId  String
+  reviewerName String
+  rating       Int // 1-5
+  comment      String @db.Text
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
