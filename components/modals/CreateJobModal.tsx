@@ -1,18 +1,21 @@
+// components/modals/CreateJobModal.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface CreateJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (jobData: any) => void;
+  initialData?: any;
 }
 
 export default function CreateJobModal({
   isOpen,
   onClose,
   onSubmit,
+  initialData,
 }: CreateJobModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -23,12 +26,42 @@ export default function CreateJobModal({
     salaryMax: '',
     description: '',
     requirements: '',
+    status: 'ACTIVE',
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        title: initialData.title || '',
+        department: initialData.department || '',
+        location: initialData.location || '',
+        employmentType: initialData.employmentType || 'Full-time',
+        salaryMin: initialData.salaryMin?.toString() || '',
+        salaryMax: initialData.salaryMax?.toString() || '',
+        description: initialData.description || '',
+        requirements: initialData.requirements || '',
+        status: initialData.status || 'ACTIVE',
+      });
+    } else {
+      // Reset form for new job
+      setFormData({
+        title: '',
+        department: '',
+        location: '',
+        employmentType: 'Full-time',
+        salaryMin: '',
+        salaryMax: '',
+        description: '',
+        requirements: '',
+        status: 'ACTIVE',
+      });
+    }
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -37,7 +70,9 @@ export default function CreateJobModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Job</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {initialData ? 'Edit Job' : 'Create New Job'}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -55,7 +90,9 @@ export default function CreateJobModal({
               type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="e.g. Senior Frontend Developer"
             />
@@ -121,35 +158,53 @@ export default function CreateJobModal({
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Salary Min
-                </label>
-                <input
-                  type="number"
-                  value={formData.salaryMin}
-                  onChange={(e) =>
-                    setFormData({ ...formData, salaryMin: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="90000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max
-                </label>
-                <input
-                  type="number"
-                  value={formData.salaryMax}
-                  onChange={(e) =>
-                    setFormData({ ...formData, salaryMax: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="120000"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status *
+              </label>
+              <select
+                required
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="DRAFT">Draft</option>
+                <option value="CLOSED">Closed</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Salary Min
+              </label>
+              <input
+                type="number"
+                value={formData.salaryMin}
+                onChange={(e) =>
+                  setFormData({ ...formData, salaryMin: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="90000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Salary Max
+              </label>
+              <input
+                type="number"
+                value={formData.salaryMax}
+                onChange={(e) =>
+                  setFormData({ ...formData, salaryMax: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="120000"
+              />
             </div>
           </div>
 
@@ -197,7 +252,7 @@ export default function CreateJobModal({
               type="submit"
               className="flex-1 px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium transition-colors"
             >
-              Create Job
+              {initialData ? 'Update Job' : 'Create Job'}
             </button>
           </div>
         </form>
